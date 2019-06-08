@@ -1,6 +1,6 @@
 '''pylint_flask module'''
 
-from astroid import MANAGER
+from astroid import MANAGER, scoped_nodes, extract_node
 from astroid import nodes
 import re
 
@@ -140,3 +140,14 @@ def is_flask_bare_import(node):
 MANAGER.register_transform(nodes.Import,
                            transform_flask_bare_import,
                            is_flask_bare_import)
+
+def transform(f):
+    if f.name == 'logger':
+        for prop in ['debug', 'info', 'warning', 'error', 'exception', 'addHandler']:
+            f.instance_attrs[prop] = extract_node('def {name}(arg): return'.format(name=prop))
+    elif f.name == 'jinja_env':
+        for prop in ['globals']:
+            f.instance_attrs[prop] = extract_node('def {name}(arg): return'.format(name=prop))
+
+
+MANAGER.register_transform(scoped_nodes.FunctionDef, transform)
